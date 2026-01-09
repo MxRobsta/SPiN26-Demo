@@ -1,0 +1,26 @@
+[
+    {
+        "target_pid": "P100",
+        "target_segment": {
+            "index": 2,
+            "pid": "P100",
+            "start_time": 133.4,
+            "end_time": 135.52,
+            "start_sample": 2134400,
+            "end_sample": 2168320,
+            "text": "But then you're doing three things in one.",
+            "clean": "but then you're doing three things in one"
+        },
+        "prior_segments": [
+            {
+                "index": 1,
+                "pid": "P100",
+                "start_time": 123.57,
+                "end_time": 129.41,
+                "start_sample": 1977120,
+                "end_sample": 2070560,
+                "text": "Yeah, and I could be signing whatever you're singing, so it's inclusive."
+            }
+        ]
+    }
+]

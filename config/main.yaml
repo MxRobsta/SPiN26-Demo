@@ -1,0 +1,7 @@
+paths:
+  audio_dir: data/audio
+  noisy_session: ${paths.audio_dir}/{device}/{session}.{device}.wav
+  ct_session: ${paths.audio_dir}/ct/{session}.ct.{pid}.wav
+  sample_ftemp: data/samples/{ftype}/{session}.{device}.{pid}.{seg}.{fext}
+
+device: aria
