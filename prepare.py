@@ -1,6 +1,7 @@
 import csv
 import json
 import hydra
+import logging
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
@@ -10,6 +11,7 @@ import soundfile as sf
 
 PLOT_FS = 100
 AUDIO_FS = 500
+INPUT_FS = 16000
 
 WAVEHEIGHT = 0.8
 TOPWAVECENTRE = 2
@@ -41,8 +43,8 @@ def animate_waveform(target_snip, partner_snip, target_seg, prior_segments, fpat
     dt = 0.01
     signal_seconds = target_snip.shape[0] / AUDIO_FS
     t = np.linspace(0, signal_seconds, len(target_snip))
-    session_start_time = min(seg["start_time"] for seg in prior_segments)
-    target_start_time = target_seg["start_time"] - session_start_time
+    session_start_time = target_seg["start_time"] - 5
+    target_start_time = 5
 
     target_snip = prep_audio(target_snip, TOPWAVECENTRE, scale=WAVEHEIGHT)
     partner_snip = prep_audio(partner_snip, 0, scale=WAVEHEIGHT)
@@ -131,12 +133,63 @@ def main(cfg: DictConfig):
 
     ref_audios = {}
     ct_audios = {}
+    transcripts = {}
     for pid in [target_pid, wearer_pid] + partner_pids:
-        print(pid)
         fpath = cfg.paths.ref_session.format(device=device, session=session, pid=pid)
         ref_audios[pid] = sf.read(fpath)[0]
         fpath = cfg.paths.ct_session.format(session=session, pid=pid)
         ct_audios[pid] = sf.read(fpath)[0]
+
+        with open(cfg.paths.transcript.format(session=session, pid=pid), "r") as file:
+            transcripts[pid] = json.load(file)
+
+    # Load in the test manifest
+    manifest = load_json(
+        cfg.paths.manifest_ftemp.format(device=device, session=session, pid=target_pid)
+    )
+
+    # Run for everything
+    decimation_factor = INPUT_FS // AUDIO_FS
+    for i, segment in enumerate(manifest):
+        target_start_time = segment["target_segment"]["start_time"]
+        start_time = target_start_time - cfg.context_time
+        end_time = segment["target_segment"]["end_time"]
+
+        start_sample = int(start_time * INPUT_FS)
+        end_sample = int(end_time * INPUT_FS)
+
+        target_snip = ref_audios[target_pid][start_sample:end_sample:decimation_factor]
+        partner_snip = np.sum(
+            np.fromiter(
+                (
+                    ref_audios[p][start_sample:end_sample:decimation_factor]
+                    for p in partner_pids
+                ),
+                np.ndarray,
+            )
+        )
+
+        # Animate
+        anim_fpath = Path(
+            cfg.paths.sample_ftemp.format(
+                ftype="video",
+                session=session,
+                device=device,
+                pid=target_pid,
+                seg=i,
+                fext="mp4",
+            )
+        )
+        if anim_fpath.exists() and not cfg.overwrite:
+            logging.info(f"Video file found at {str(anim_fpath)}. Skipping...")
+        else:
+            animate_waveform(
+                target_snip,
+                partner_snip,
+                segment["target_segment"],
+                segment["prior_segments"],
+                anim_fpath,
+            )
 
 
 if __name__ == "__main__":

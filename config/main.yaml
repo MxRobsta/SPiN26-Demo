@@ -4,9 +4,13 @@ paths:
   ct_session: ${paths.audio_dir}/ct/{session}.ct.{pid}.wav
   ref_session: ${paths.audio_dir}/ref/{session}.{device}.{pid}.wav
   sample_ftemp: data/samples/{ftype}/{session}.{device}.{pid}.{seg}.{fext}
-  manifest_ftemp: data/manifests/{session}.{device}{pid}.json
+  manifest_ftemp: data/manifests/{session}.{device}.{pid}.json
   session_info: data/sessions.eval.csv
+  transcript: data/transcripts/{session}.transcript.{pid}.json
 
 device: aria
 session: eval_01
 target_pid: P099
+context_time: 5 # prior signal preserved in seconds
+
+overwrite: True
