@@ -5,3 +5,4 @@ paths:
   sample_ftemp: data/samples/{ftype}/{session}.{device}.{pid}.{seg}.{fext}
 
 device: aria
+
