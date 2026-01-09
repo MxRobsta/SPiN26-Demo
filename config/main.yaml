@@ -2,8 +2,11 @@ paths:
   audio_dir: data/audio
   noisy_session: ${paths.audio_dir}/{device}/{session}.{device}.wav
   ct_session: ${paths.audio_dir}/ct/{session}.ct.{pid}.wav
+  ref_session: ${paths.audio_dir}/ref/{session}.{device}.{pid}.wav
   sample_ftemp: data/samples/{ftype}/{session}.{device}.{pid}.{seg}.{fext}
   manifest_ftemp: data/manifests/{session}.{device}{pid}.json
+  session_info: data/sessions.eval.csv
 
 device: aria
-
+session: eval_01
+target_pid: P099

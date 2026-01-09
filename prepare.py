@@ -1,9 +1,12 @@
+import csv
 import json
+import hydra
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
+from omegaconf import DictConfig
 from pathlib import Path
-
+import soundfile as sf
 
 PLOT_FS = 100
 AUDIO_FS = 500
@@ -26,38 +29,6 @@ def prep_audio(waveform: np.ndarray, y_centre: float | int, scale=1):
     waveform += y_centre
 
     return waveform
-
-
-def plot_target(audio, target, partner, segment_file, ftemplate):
-    """Plot all segments for the given target"""
-
-    segments = load_json(segment_file)
-
-    # Do the plots for all segments
-    for segment in segments:
-        dataset = segment["session"].split("_")[0]
-        start = min(s["start_time"] for s in segment["prior_segments"])
-        end = segment["target_segment"]["end_time"]
-        start = int(start * AUDIO_FS)
-        end = int(end * AUDIO_FS)
-
-        target_snip = audio[target][start:end]
-        partner_snip = audio[partner][start:end]
-
-        fpath = ftemplate.format(
-            dataset=dataset,
-            session=segment["session"],
-            device=segment["device"],
-            pid=target,
-            seg=segment["id"],
-        )
-        animate_waveform(
-            target_snip,
-            partner_snip,
-            segment["target_segment"],
-            segment["prior_segments"],
-            fpath,
-        )
 
 
 def animate_waveform(target_snip, partner_snip, target_seg, prior_segments, fpath):
@@ -131,3 +102,42 @@ def animate_waveform(target_snip, partner_snip, target_seg, prior_segments, fpat
     ani.save(fpath, writer="ffmpeg", fps=1 / dt, dpi=450)
     plt.tight_layout()
     plt.close(fig)
+
+
+@hydra.main(version_base=None, config_path="config", config_name="main")
+def main(cfg: DictConfig):
+    """Entry point to script: animates all viable segments"""
+
+    # Basic session info
+    session = cfg.session
+    device = cfg.device
+    target_pid = cfg.target_pid
+
+    with open(cfg.paths.session_info, "r") as file:
+        session_info = list(
+            filter(lambda x: x["session"] == session, csv.DictReader(file))
+        )[0]
+    wearer_pid = session_info[f"pos{session_info[f'{device}_pos']}"]
+    partner_pids = [session_info[f"pos{i}"] for i in range(1, 5)]
+    partner_pids = [x for x in partner_pids if x not in [target_pid, wearer_pid]]
+
+    # Load in the audio
+    noisy_fpath = cfg.paths.noisy_session.format(session=session, device=device)
+    noisy_audio, _ = sf.read(noisy_fpath)
+    if device == "aria":
+        noisy_audio = noisy_audio[:, 2]
+    else:
+        noisy_audio = np.sum(noisy_audio[:, :2], axis=1)
+
+    ref_audios = {}
+    ct_audios = {}
+    for pid in [target_pid, wearer_pid] + partner_pids:
+        print(pid)
+        fpath = cfg.paths.ref_session.format(device=device, session=session, pid=pid)
+        ref_audios[pid] = sf.read(fpath)[0]
+        fpath = cfg.paths.ct_session.format(session=session, pid=pid)
+        ct_audios[pid] = sf.read(fpath)[0]
+
+
+if __name__ == "__main__":
+    main()
