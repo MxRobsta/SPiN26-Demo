@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
 from omegaconf import DictConfig
+import os
 from pathlib import Path
 import soundfile as sf
 
@@ -202,8 +203,9 @@ def main(cfg: DictConfig):
 
         # Save audio
 
-        audio_snip = np.sum(ref_audios.values())
-        audio_snip = rms_norm(audio_snip, cfg.rms)
+        audio_snip = [x[start_sample:end_sample] for x in ref_audios.values()]
+        audio_snip = rms_norm(np.sum(audio_snip, axis=0), cfg.rms)
+        print(audio_snip.shape)
 
         audio_fpath = Path(
             cfg.paths.sample_ftemp.format(
@@ -216,11 +218,28 @@ def main(cfg: DictConfig):
             )
         )
         if audio_fpath.exists() and not cfg.overwrite:
-            logging.info(f"Audio file found at {str(anim_fpath)}. Skipping...")
+            logging.info(f"Audio file found at {str(audio_fpath)}. Skipping...")
         else:
             sf.write(audio_fpath, audio_snip, INPUT_FS)
 
         # FFMPEG merge
+
+        mix_fpath = Path(
+            cfg.paths.sample_ftemp.format(
+                ftype="mix",
+                session=session,
+                device=device,
+                pid=target_pid,
+                seg=i,
+                fext="mp4",
+            )
+        )
+    if mix_fpath.exists() and not cfg.overwrite:
+        logging.info(f"Mixed file found at {str(mix_fpath)}. Skipping...")
+    else:
+        os.system(
+            f"ffmpeg -y -hide_banner -loglevel error -i {str(anim_fpath)} -i {str(audio_fpath)} -c:v copy -c:a aac {str(mix_fpath)}"
+        )
 
 
 if __name__ == "__main__":
