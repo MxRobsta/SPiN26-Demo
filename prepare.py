@@ -9,6 +9,7 @@ from omegaconf import DictConfig
 import os
 from pathlib import Path
 import soundfile as sf
+import soxr
 
 PLOT_FS = 100
 AUDIO_FS = 500
@@ -135,11 +136,14 @@ def main(cfg: DictConfig):
 
     # Load in the audio
     noisy_fpath = cfg.paths.noisy_session.format(session=session, device=device)
-    noisy_audio, _ = sf.read(noisy_fpath)
+    noisy_audio, nfs = sf.read(noisy_fpath)
     if device == "aria":
         noisy_audio = noisy_audio[:, 2]
     else:
         noisy_audio = np.sum(noisy_audio[:, :2], axis=1)
+
+    if nfs != INPUT_FS:
+        noisy_audio = soxr.resample(noisy_audio, nfs, INPUT_FS)
 
     ref_audios = {}
     ct_audios = {}
@@ -203,9 +207,11 @@ def main(cfg: DictConfig):
 
         # Save audio
 
-        audio_snip = [x[start_sample:end_sample] for x in ref_audios.values()]
-        audio_snip = rms_norm(np.sum(audio_snip, axis=0), cfg.rms)
-        print(audio_snip.shape)
+        audio_snip = np.sum(
+            [x[start_sample:end_sample] for x in ref_audios.values()], axis=0
+        )
+        audio_snip = noisy_audio[start_sample:end_sample]
+        audio_snip = rms_norm(audio_snip, cfg.rms)
 
         audio_fpath = Path(
             cfg.paths.sample_ftemp.format(
@@ -217,7 +223,7 @@ def main(cfg: DictConfig):
                 fext="wav",
             )
         )
-        if audio_fpath.exists() and not cfg.overwrite:
+        if audio_fpath.exists() and not cfg.overwrite and False:
             logging.info(f"Audio file found at {str(audio_fpath)}. Skipping...")
         else:
             sf.write(audio_fpath, audio_snip, INPUT_FS)
