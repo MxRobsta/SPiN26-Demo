@@ -33,6 +33,15 @@ def prep_audio(waveform: np.ndarray, y_centre: float | int, scale=1):
     return waveform
 
 
+def rms_norm(audio: np.ndarray, target_rms: float):
+    """Normalise an audio array to a target RMS"""
+
+    in_rms = np.sqrt(np.mean(np.square(audio)))
+    audio *= target_rms / in_rms
+
+    return audio
+
+
 def animate_waveform(target_snip, partner_snip, target_seg, prior_segments, fpath):
     """Animate the waveform so it plays with a sliding line"""
 
@@ -190,6 +199,28 @@ def main(cfg: DictConfig):
                 segment["prior_segments"],
                 anim_fpath,
             )
+
+        # Save audio
+
+        audio_snip = np.sum(ref_audios.values())
+        audio_snip = rms_norm(audio_snip, cfg.rms)
+
+        audio_fpath = Path(
+            cfg.paths.sample_ftemp.format(
+                ftype="audio",
+                session=session,
+                device=device,
+                pid=target_pid,
+                seg=i,
+                fext="wav",
+            )
+        )
+        if audio_fpath.exists() and not cfg.overwrite:
+            logging.info(f"Audio file found at {str(anim_fpath)}. Skipping...")
+        else:
+            sf.write(audio_fpath, audio_snip, INPUT_FS)
+
+        # FFMPEG merge
 
 
 if __name__ == "__main__":
