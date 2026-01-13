@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import soundfile as sf
 import soxr
+import textwrap
 
 PLOT_FS = 100
 AUDIO_FS = 500
@@ -77,10 +78,11 @@ def animate_waveform(target_snip, partner_snip, target_seg, prior_segments, fpat
         middle -= session_start_time
 
         if seg["pid"] == target_seg["pid"]:
-            y = TOPWAVECENTRE + WAVEHEIGHT
+            y = TOPWAVECENTRE + 1
         else:
-            y = WAVEHEIGHT
+            y = 1
 
+        seg["text"] = textwrap.fill(seg["text"], 55)
         ax.text(middle, y, seg["text"], va="bottom", ha="center")
 
     def update(frame, targ_line, part_line):
@@ -189,6 +191,7 @@ def main(cfg: DictConfig):
                 ftype="video",
                 session=session,
                 device=device,
+                mic="ref",
                 pid=target_pid,
                 seg=i,
                 fext="mp4",
@@ -207,45 +210,50 @@ def main(cfg: DictConfig):
 
         # Save audio
 
-        audio_snip = np.sum(
-            [x[start_sample:end_sample] for x in ref_audios.values()], axis=0
-        )
-        audio_snip = noisy_audio[start_sample:end_sample]
-        audio_snip = rms_norm(audio_snip, cfg.rms)
+        for atype in [device, "ct"]:
+            if atype == device:
+                audio_snip = noisy_audio[start_sample:end_sample]
+            else:
+                audio_snip = np.sum(
+                    [x[start_sample:end_sample] for x in ref_audios.values()], axis=0
+                )
+            audio_snip = rms_norm(audio_snip, cfg.rms)
 
-        audio_fpath = Path(
-            cfg.paths.sample_ftemp.format(
-                ftype="audio",
-                session=session,
-                device=device,
-                pid=target_pid,
-                seg=i,
-                fext="wav",
+            audio_fpath = Path(
+                cfg.paths.sample_ftemp.format(
+                    ftype="audio",
+                    session=session,
+                    device=device,
+                    mic=atype,
+                    pid=target_pid,
+                    seg=i,
+                    fext="wav",
+                )
             )
-        )
-        if audio_fpath.exists() and not cfg.overwrite and False:
-            logging.info(f"Audio file found at {str(audio_fpath)}. Skipping...")
-        else:
-            sf.write(audio_fpath, audio_snip, INPUT_FS)
+            if audio_fpath.exists() and not cfg.overwrite:
+                logging.info(f"Audio file found at {str(audio_fpath)}. Skipping...")
+            else:
+                sf.write(audio_fpath, audio_snip, INPUT_FS)
 
-        # FFMPEG merge
+            # FFMPEG merge
 
-        mix_fpath = Path(
-            cfg.paths.sample_ftemp.format(
-                ftype="mix",
-                session=session,
-                device=device,
-                pid=target_pid,
-                seg=i,
-                fext="mp4",
+            mix_fpath = Path(
+                cfg.paths.sample_ftemp.format(
+                    ftype="mix",
+                    session=session,
+                    device=device,
+                    mic=atype,
+                    pid=target_pid,
+                    seg=i,
+                    fext="mp4",
+                )
             )
-        )
-    if mix_fpath.exists() and not cfg.overwrite:
-        logging.info(f"Mixed file found at {str(mix_fpath)}. Skipping...")
-    else:
-        os.system(
-            f"ffmpeg -y -hide_banner -loglevel error -i {str(anim_fpath)} -i {str(audio_fpath)} -c:v copy -c:a aac {str(mix_fpath)}"
-        )
+            if mix_fpath.exists() and not cfg.overwrite:
+                logging.info(f"Mixed file found at {str(mix_fpath)}. Skipping...")
+            else:
+                os.system(
+                    f"ffmpeg -y -hide_banner -loglevel error -i {str(anim_fpath)} -i {str(audio_fpath)} -c:v copy -c:a aac {str(mix_fpath)}"
+                )
 
 
 if __name__ == "__main__":
