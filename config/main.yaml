@@ -13,5 +13,6 @@ session: eval_01
 target_pid: P099
 context_time: 5 # prior signal preserved in seconds
 rms: 0.05
+target_seg: 4
 
 overwrite: False
