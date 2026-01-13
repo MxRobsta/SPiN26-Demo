@@ -26,8 +26,8 @@ def main(cfg: DictConfig):
             device=cfg.device,
             mic=atype,
             pid=cfg.target_pid,
-            seg=cfg.target_seg,
-            fext="mp4",
+            seg=0,
+            fext="mov",
         )
 
         st.video(sample_fpath)

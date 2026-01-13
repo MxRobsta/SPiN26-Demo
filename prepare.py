@@ -188,7 +188,7 @@ def main(cfg: DictConfig):
 
     # Run for everything
     decimation_factor = INPUT_FS // AUDIO_FS
-    for i, segment in enumerate(manifest):
+    for i, segment in enumerate(manifest[4:]):
         target_start_time = segment["target_segment"]["start_time"]
         start_time = target_start_time - cfg.context_time
         end_time = segment["target_segment"]["end_time"]
@@ -267,7 +267,7 @@ def main(cfg: DictConfig):
                     mic=atype,
                     pid=target_pid,
                     seg=i,
-                    fext="mp4",
+                    fext="mov",
                 )
             )
             if mix_fpath.exists() and not cfg.overwrite:
