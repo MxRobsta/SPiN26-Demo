@@ -11,6 +11,7 @@ def main(cfg: DictConfig):
     st.markdown(text)
 
     st.subheader("Clean Speech Sample")
+    st.audio(f"data/{cfg.target_pid}.wav")
 
     for atype in [cfg.device, "ct"]:
 
