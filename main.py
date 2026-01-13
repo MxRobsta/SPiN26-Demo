@@ -31,6 +31,19 @@ def main(cfg: DictConfig):
         )
 
         st.video(sample_fpath)
+        if atype == cfg.device:
+            cola, colb = st.columns([1, 5])
+
+            with cola:
+                st.text("Response")
+            with colb:
+                st.text_input(label="thing", label_visibility="collapsed")
+
+            with cola:
+                show_ans = st.checkbox("Show answer")
+            if show_ans:
+                with colb:
+                    st.text("I did have a separate app before for Sudoku.")
 
 
 if __name__ == "__main__":

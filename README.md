@@ -11,4 +11,8 @@ speech, followed by two examples of the listening test: the first uses audio
 recorded on Aria glasses (more challenging), and the second uses audio recorded
 on close-talk microphones (easier).
 
+For each example, listen to the full audio sample, then transcribe the audio
+heard during the "Transcribe Here". When you're done, you can show the true
+answer and listen to the close-talk microphone sample.
+
 Please read the provided transcripts before starting the sample.
