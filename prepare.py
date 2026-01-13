@@ -83,7 +83,7 @@ def animate_waveform(target_snip, partner_snip, target_seg, prior_segments, fpat
             y = 1
 
         seg["text"] = textwrap.fill(seg["text"], 55)
-        ax.text(middle, y, seg["text"], va="bottom", ha="center")
+        ax.text(middle, y, seg["text"], va="top", ha="center")
 
     def update(frame, targ_line, part_line):
         end = int((frame + dt) * AUDIO_FS) + 1
@@ -214,9 +214,10 @@ def main(cfg: DictConfig):
             if atype == device:
                 audio_snip = noisy_audio[start_sample:end_sample]
             else:
-                audio_snip = np.sum(
+                audio_snip = np.stack(
                     [x[start_sample:end_sample] for x in ref_audios.values()], axis=0
                 )
+                audio_snip = np.sum(audio_snip, axis=0)
             audio_snip = rms_norm(audio_snip, cfg.rms)
 
             audio_fpath = Path(

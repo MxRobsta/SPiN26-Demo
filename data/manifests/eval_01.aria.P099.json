@@ -130,10 +130,19 @@
                 "index": 189,
                 "pid": "P099",
                 "start_time": 1937.0,
-                "end_time": 1942.88,
+                "end_time": 1942.0,
                 "start_sample": 30992000,
                 "end_sample": 31086080,
                 "text": "This is where I do so much Sudoku, and then I forget about it for months, and then I get reminded again."
+            },
+            {
+                "index": 189,
+                "pid": "P100",
+                "start_time": 1940.0,
+                "end_time": 1942.88,
+                "start_sample": 30992000,
+                "end_sample": 31086080,
+                "text": "I have two separate apps for sudoku."
             }
         ]
     }
