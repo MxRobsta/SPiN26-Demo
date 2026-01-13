@@ -4,6 +4,7 @@ import hydra
 import logging
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.patches import Rectangle
 import numpy as np
 from omegaconf import DictConfig
 import os
@@ -69,18 +70,35 @@ def animate_waveform(target_snip, partner_snip, target_seg, prior_segments, fpat
     ax.plot(t, target_snip, "C0", alpha=0.5)
     ax.plot(t, partner_snip, "C1", alpha=0.5)
 
-    ax.vlines(target_start_time, -1, 3, "red")
+    target_rect = Rectangle(
+        [target_start_time, TOPWAVECENTRE - 1],
+        signal_seconds - 5,
+        2,
+        color="gray",
+        alpha=0.15,
+    )
+    ax.add_patch(target_rect)
+    target_rect = Rectangle(
+        [target_start_time, TOPWAVECENTRE - 1],
+        signal_seconds - 5,
+        2,
+        fill=None,
+        lw=2,
+        edgecolor="red",
+    )
+    ax.add_patch(target_rect)
 
     target_seg["text"] = "Transcribe Here"
     for seg in prior_segments + [target_seg]:
         # Write the transcript on the plot
-        middle = (seg["start_time"] + seg["end_time"]) / 2
+        this_start = max(seg["start_time"], session_start_time)
+        middle = (this_start + seg["end_time"]) / 2
         middle -= session_start_time
 
         if seg["pid"] == target_seg["pid"]:
-            y = TOPWAVECENTRE + 1
+            y = TOPWAVECENTRE + 0.95
         else:
-            y = 1
+            y = 0.95
 
         seg["text"] = textwrap.fill(seg["text"], 55)
         ax.text(middle, y, seg["text"], va="top", ha="center")
@@ -113,9 +131,8 @@ def animate_waveform(target_snip, partner_snip, target_seg, prior_segments, fpat
 
     if not Path(fpath).parent.exists():
         Path(fpath).parent.mkdir(parents=True)
-
-    ani.save(fpath, writer="ffmpeg", fps=1 / dt, dpi=450)
     plt.tight_layout()
+    ani.save(fpath, writer="ffmpeg", fps=1 / dt, dpi=450)
     plt.close(fig)
 
 
@@ -152,9 +169,14 @@ def main(cfg: DictConfig):
     transcripts = {}
     for pid in [target_pid, wearer_pid] + partner_pids:
         fpath = cfg.paths.ref_session.format(device=device, session=session, pid=pid)
-        ref_audios[pid] = sf.read(fpath)[0]
+        ref_audios[pid], rfs = sf.read(fpath)
+        if rfs != INPUT_FS:
+            ref_audios[pid] = soxr.resample(ref_audios[pid], rfs, INPUT_FS)
+
         fpath = cfg.paths.ct_session.format(session=session, pid=pid)
-        ct_audios[pid] = sf.read(fpath)[0]
+        ct_audios[pid], ctfs = sf.read(fpath)
+        if ctfs != INPUT_FS:
+            ct_audios[pid] = soxr.resample(ct_audios[pid], ctfs, INPUT_FS)
 
         with open(cfg.paths.transcript.format(session=session, pid=pid), "r") as file:
             transcripts[pid] = json.load(file)
@@ -215,7 +237,7 @@ def main(cfg: DictConfig):
                 audio_snip = noisy_audio[start_sample:end_sample]
             else:
                 audio_snip = np.zeros(end_sample - start_sample)
-                for a in ref_audios.values():
+                for a in ct_audios.values():
                     audio_snip += a[start_sample:end_sample]
             audio_snip = rms_norm(audio_snip, cfg.rms)
 

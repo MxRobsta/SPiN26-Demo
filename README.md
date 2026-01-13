@@ -10,3 +10,5 @@ To cue the target speaker's voice, you will have a clean example of their
 speech, followed by two examples of the listening test: the first uses audio
 recorded on Aria glasses (more challenging), and the second uses audio recorded
 on close-talk microphones (easier).
+
+Please read the provided transcripts before starting the sample.
