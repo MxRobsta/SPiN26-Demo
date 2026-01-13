@@ -6,7 +6,19 @@ import streamlit as st
 @hydra.main(version_base=None, config_path="config", config_name="main")
 def main(cfg: DictConfig):
 
+    with open("README.md", "r") as file:
+        text = file.read()
+    st.markdown(text)
+
+    st.subheader("Clean Speech Sample")
+
     for atype in [cfg.device, "ct"]:
+
+        if atype == cfg.device:
+            st.subheader("Aria Audio (noisy)")
+        else:
+            st.subheader("Close-talk Audio (clean-ish)")
+
         sample_fpath = cfg.paths.sample_ftemp.format(
             ftype="mix",
             session=cfg.session,
